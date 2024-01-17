@@ -51,7 +51,7 @@ int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val) {
 
 int runCommand(char* command, char* user, char* landing, char* server, char* mountDest) {
 
-    // If the command is to launch a non-landing shell
+    // If the command is to launch a cluster shell
     if (strcmp(command, "s") == 0 || strcmp(command, "shell") == 0) {
         if (user == NULL) {
             printf("%s", "Error: No user given\n");
@@ -69,7 +69,7 @@ int runCommand(char* command, char* user, char* landing, char* server, char* mou
 
         return landingCommand(landing);
     }
-    // If the command is to mount the aimos file system
+    // If the command is to mount the AiMOS file system
     else if (strcmp(command, "m") == 0 || strcmp(command, "mount") == 0) {
         if (user == NULL) {
             printf("%s", "Error: No user given\n");
@@ -91,7 +91,7 @@ int runCommand(char* command, char* user, char* landing, char* server, char* mou
         free(mountSrc);
         return exitCode;
     }
-    // If the command is to unmount the aimos file system
+    // If the command is to unmount the AiMOS file system
     else if (strcmp(command, "u") == 0 || strcmp(command, "unmount") == 0 || strcmp(command, "umount") == 0) {
         if (mountDest == NULL) {
             printf("%s", "Error: No mount point given\n");

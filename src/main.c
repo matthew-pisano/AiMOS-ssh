@@ -8,8 +8,9 @@ int main(int argc, char *argv[]) {
     char **args;
     char **flags;
 
+    // Split command line args into arguments and flags
     splitArgs(argc, argv, &numArgs, &args, &numFlags, &flags);
-
+    // Run the appropriate command
     int exitCode = processArgs(numArgs, args, numFlags, flags);
 
     free(args);
