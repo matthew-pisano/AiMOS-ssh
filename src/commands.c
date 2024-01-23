@@ -7,14 +7,14 @@
 #include "commands.h"
 
 
-int shellCommand(char* landing, char* server) {
+int shellCommand(char* landing, char* clusterfen) {
 
     char* prefix = "ssh -o ProxyCommand=\"ssh -q -W %h:%p ";
-    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(server) + 3));
+    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(clusterfen) + 3));
     strcpy(command, prefix);
     strcat(command, landing);
     strcat(command, "\" ");
-    strcat(command, server);
+    strcat(command, clusterfen);
 
     int exitCode = system(command);
     free(command);

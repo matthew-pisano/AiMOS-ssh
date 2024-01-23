@@ -26,7 +26,7 @@ aimos --help
 ```
 
 > [!IMPORTANT]
-> All flags must be given in the format of `-f=VALUE` or `--flag=VALUE`.  The only exception to this is the `-h` or `--help` flag, which does not require a value. 
+> All flags must be given in the format of `-f=VALUE` or `--flag=VALUE`.  The only exception to this is the `-h` or `--help` flag, which does not require a value.
 
 
 ## Quick Start
