@@ -30,7 +30,7 @@ void splitArgs(int argc, char** argv, int* numArgs, char*** args, int* numFlags,
         else (*args)[argCounter++] = argv[i];
 }
 
-int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val) {
+int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, const int* minValLen) {
 
     int flagLen = (int) strlen(searchFlag);
     for (int i=0; i<numFlags; i++) {
@@ -41,12 +41,22 @@ int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val) {
 
             // Assign the value of the flag to the val pointer
             int valLen = (int) strlen(flags[i]) - flagLen;
-            *val = malloc(sizeof(char) * (valLen + 1));
-            memcpy(*val, &flags[i][flagLen], valLen);
+            if (minValLen != NULL && valLen < *minValLen)
+                *val = calloc(*minValLen + 1, sizeof(char));
+            else
+                *val = calloc(valLen + 1, sizeof(char));
+
+            strcpy(*val, &flags[i][flagLen]);
+
             return 0;
         }
     }
     return 1;
+}
+
+int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val) {
+    return getnFlagVal(numFlags, flags, searchFlag, val, NULL);
+
 }
 
 int runCommand(char* command, char* user, char* landingNum, char* clusterNum, char* clusterName, char* mountDest) {
@@ -95,15 +105,14 @@ int runCommand(char* command, char* user, char* landingNum, char* clusterNum, ch
         }
 
         // Create the mount source path string
-        char* home = "/gpfs/u/home/NLUG/";
+        char* home = "/gpfs/u/home/";
         char* mountSrc = malloc(sizeof(char) * (strlen(home) + strlen(user) + 1));
-        mountSrc[0] = '\0';
-        strcpy(mountSrc, home);
-        strcat(mountSrc, user);
+        sprintf(mountSrc, "%s%s", home, user);
 
         char* landing = NULL;
         makeLandingServer(user, landingNum, &landing);
         int exitCode = mountCommand(landing, mountSrc, mountDest);
+
         if (exitCode == 0) printf("Mounted %s%s:%s to %s\n", home, user, mountSrc, mountDest);
         free(mountSrc);
         free(landing);
@@ -128,21 +137,24 @@ int runCommand(char* command, char* user, char* landingNum, char* clusterNum, ch
 }
 
 int processNodeNumFlag(int numFlags, char** flags, char* flagName, char* flagAlias, char** numVal) {
+    int padTo = 2;
     // Get the requested node number
-    if(getFlagVal(numFlags, flags, flagName, numVal) != 0)
-        getFlagVal(numFlags, flags, flagAlias, numVal);
+    if(getnFlagVal(numFlags, flags, flagName, numVal, &padTo) != 0)
+        getnFlagVal(numFlags, flags, flagAlias, numVal, &padTo);
 
     // Ensure that the node number is not empty
-    if (*numVal == NULL || strlen(*numVal) == 0) {
-        *numVal = malloc(sizeof(char) * 3);
-        *numVal[0] = '\0';
-        strcpy(*numVal, "01");
+    if (*numVal == NULL || strlen(*numVal) == 0){
+        // Use memory allocation to ensure that calling free is always valid
+        *numVal = calloc(3, sizeof(char));
+        (*numVal)[0] = '0';
+        (*numVal)[1] = '1';
     }
+
     // Ensure that the node number is two digits
     else if (strlen(*numVal) == 1) {
-        char tmp = *numVal[0];
-        *numVal[0] = '0';
-        *numVal[1] = tmp;
+        char tmp = (*numVal)[0];
+        (*numVal)[0] = '0';
+        (*numVal)[1] = tmp;
     }
     // Ensure that the landing node number is not more than two digits
     else if (strlen(*numVal) > 2) {
@@ -153,27 +165,17 @@ int processNodeNumFlag(int numFlags, char** flags, char* flagName, char* flagAli
 }
 
 int makeLandingServer(char* user, char* landingNum, char** landing) {
-    int landingLen = (int) strlen(user) + (int) strlen(landingNum) + 18;
+    int landingLen = (int) strlen(user) + (int) strlen(landingNum) + 19;
     *landing = malloc(sizeof(char) * landingLen);
-    *landing[0] = '\0';
-    strcpy(*landing, user);
-    strcat(*landing, "@blp");
-    strcat(*landing, landingNum);
-    strcat(*landing, ".ccni.rpi.edu");
+    sprintf(*landing, "%s@blp%s.ccni.rpi.edu", user, landingNum);
 
     return 0;
 }
 
 int makeClusterServer(char* user, char* clusterNum, char* clusterName, char** cluster) {
-    int clusterLen = (int) strlen(user) + (int) strlen(clusterNum) + (int) strlen(clusterName) + 18;
+    int clusterLen = (int) strlen(user) + (int) strlen(clusterNum) + (int) strlen(clusterName) + 19;
     *cluster = malloc(sizeof(char) * clusterLen);
-    *cluster[0] = '\0';
-    strcpy(*cluster, user);
-    strcat(*cluster, "@");
-    strcat(*cluster, clusterName);
-    strcat(*cluster, "fen");
-    strcat(*cluster, clusterNum);
-    strcat(*cluster, ".ccni.rpi.edu");
+    sprintf(*cluster, "%s@%sfen%s.ccni.rpi.edu", user, clusterName, clusterNum);
 
     return 0;
 }
@@ -183,6 +185,11 @@ int processArgs(int numArgs, char** args, int numFlags, char** flags) {
     if (numArgs == 0 && numFlags == 0) {
         printf("%s", HELP);
         return 0;
+    }
+
+    if (numArgs > 1) {
+        printf("Error: Too many arguments given\n");
+        return 1;
     }
 
     if (getFlagVal(numFlags, flags, "-h\0", NULL) == 0 || getFlagVal(numFlags, flags, "--help\0", NULL) == 0) {
@@ -230,8 +237,8 @@ int processArgs(int numArgs, char** args, int numFlags, char** flags) {
     // Run the command
     int exitCode = runCommand(args[0], user, landingNum, clusterNum, clusterName, mountDest);
 
-    free(landingNum);
-    free(clusterNum);
+    if (landingNum != NULL) free(landingNum);
+    if (clusterNum != NULL) free(clusterNum);
     if (mountDest != NULL) free(mountDest);
     if (user != NULL) free(user);
     if (clusterName != NULL) free(clusterName);

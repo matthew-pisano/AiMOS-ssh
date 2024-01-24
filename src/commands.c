@@ -4,17 +4,15 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "commands.h"
 
 
 int shellCommand(char* landing, char* clusterfen) {
 
-    char* prefix = "ssh -o ProxyCommand=\"ssh -q -W %h:%p ";
-    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(clusterfen) + 3));
-    strcpy(command, prefix);
-    strcat(command, landing);
-    strcat(command, "\" ");
-    strcat(command, clusterfen);
+    char* prefix = "ssh -o ProxyCommand=\"ssh -q -W %h:%p";
+    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(clusterfen) + 5));
+    sprintf(command, "%s %s\" %s", prefix, landing, clusterfen);
 
     int exitCode = system(command);
     free(command);
@@ -23,9 +21,8 @@ int shellCommand(char* landing, char* clusterfen) {
 
 int landingCommand(char* landing) {
 
-    char* command = malloc(sizeof(char) * (strlen(landing) + 5));
-    strcpy(command, "ssh ");
-    strcat(command, landing);
+    char* command = malloc(sizeof(char) * (strlen(landing) + 6));
+    sprintf(command, "ssh %s", landing);
 
     int exitCode = system(command);
     free(command);
@@ -34,14 +31,9 @@ int landingCommand(char* landing) {
 
 int mountCommand(char* landing, char* mountSrc, char* mountDest) {
 
-    char* prefix = "sshfs -o allow_other,follow_symlinks \"";
-    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(mountSrc) + strlen(mountDest) + 4));
-    strcpy(command, prefix);
-    strcat(command, landing);
-    strcat(command, ":");
-    strcat(command, mountSrc);
-    strcat(command, "\" ");
-    strcat(command, mountDest);
+    char* prefix = "sshfs -o allow_other,follow_symlinks";
+    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(mountSrc) + strlen(mountDest) + 9));
+    sprintf(command, "%s \"%s:%s\" \"%s\"", prefix, landing, mountSrc, mountDest);
 
     int exitCode = system(command);
     free(command);
@@ -50,9 +42,8 @@ int mountCommand(char* landing, char* mountSrc, char* mountDest) {
 
 int unmountCommand(char* mountPoint) {
 
-    char* command = malloc(sizeof(char) * (strlen(mountPoint) + 15));
-    strcpy(command, "fusermount -u ");
-    strcat(command, mountPoint);
+    char* command = malloc(sizeof(char) * (strlen(mountPoint) + 18));
+    sprintf(command, "fusermount -u \"%s\"", mountPoint);
 
     int exitCode = system(command);
     free(command);

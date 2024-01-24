@@ -32,7 +32,20 @@ Commands: \n\
  * @param val A pointer to the string to assign the value to
  * @return Zero if the flag was found, one otherwise
  */
-int getFlagVal(int numFlags, char **flags, char *searchFlag, char **val);
+int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val);
+
+
+/**
+ * Gets the value of the given flag whe in the form -f=VAL or --flag=VAL
+ * @param numFlags The number of flags given by the user
+ * @param flags An array of the flags given by the user
+ * @param searchFlag The flag to search for
+ * @param val A pointer to the string to assign the value to
+ * @param minValLen A pointer to the minimum length of the value to assign.  This value is ignored if the value is longer than the minimum length or if the minimum length is null
+ * @return Zero if the flag was found, one otherwise
+ */
+int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, const int* minValLen);
+
 
 
 /**
