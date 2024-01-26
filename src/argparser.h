@@ -14,8 +14,9 @@ Options: \n\
     -h --help                         : Show this message\n\
     -n=NAME, --cluster-name=NAME      : The name of the cluster to enter (dcs, npl, ...)\n\
     -l=NUM, --landing-num=NUM         : The number of the landing node to log into\n\
-    -n=NUM, --cluster-num=NUM         : The number of the cluster front end node to log into\n\
-    -u=USER, --user=USER              : The username to log in with\n\
+    -c=NUM, --cluster-num=NUM         : The number of the cluster front end node to log into\n\
+    -p=PROJ, --project=PROJ           : The name of the project to log into\n\
+    -u=USER, --user=USER              : The username to log in with (without the project prepended)\n\
     -m=MOUNTPOINT, --mount=MOUNTPOINT : The mount point for the AiMOS file system\n\
 Commands: \n\
     c cluster                         : Enters AiMOS through a cluster front end node shell\n\
@@ -62,23 +63,23 @@ void splitArgs(int argc, char *argv[], int *numArgs, char **args[], int *numFlag
 
 /**
  * Makes the server address to log into the given landing node
- * @param user The AiMOS username to use
+ * @param projUser The AiMOS username to use
  * @param landingNum The number of the landing node to use
  * @param landing A pointer to the string to assign the address to
  * @return Zero if the command was created successfully, one otherwise
  */
-int makeLandingServer(char* user, char* landingNum, char** landing);
+int makeLandingServer(char* projUser, char* landingNum, char** landing);
 
 
 /**
  * Makes the cluster address to log into the given cluster front end node
- * @param user The AiMOS username to use
+ * @param projUser The AiMOS username to use
  * @param clusterNum The number of the cluster front end node to use
  * @param clusterName The name of the cluster to use
  * @param cluster A pointer to the string to assign the address to
  * @return Zero if the command was created successfully, one otherwise
  */
-int makeClusterServer(char* user, char* clusterNum, char* clusterName, char** cluster);
+int makeClusterServer(char* projUser, char* clusterNum, char* clusterName, char** cluster);
 
 
 /**
@@ -90,7 +91,7 @@ int makeClusterServer(char* user, char* clusterNum, char* clusterName, char** cl
  * @param mountDest The mount point to use, if given
  * @return The exit code of the command that was run
  */
-int runCommand(char* command, char* user, char* landingNum, char* clusterNum, char* clusterName, char* mountDest);
+int runCommand(char* command, char* project, char* user, char* landingNum, char* clusterNum, char* clusterName, char* mountDest);
 
 /**
  * Find the given flag or alias in the given flags array and assign the value to the given val pointer

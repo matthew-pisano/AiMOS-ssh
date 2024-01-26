@@ -59,81 +59,83 @@ int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val) {
 
 }
 
-int runCommand(char* command, char* user, char* landingNum, char* clusterNum, char* clusterName, char* mountDest) {
+int runCommand(char* command, char* project, char* user, char* landingNum, char* clusterNum, char* clusterName, char* mountDest) {
 
-    // If the command is to launch a cluster shell
-    if (strcmp(command, "c") == 0 || strcmp(command, "cluster") == 0) {
-        if (user == NULL) {
-            printf("Error: No user given\n");
-            return 1;
-        }
-        if (clusterName == NULL) {
-            printf("Error: No cluster name given\n");
-            return 1;
-        }
-        char* landing = NULL;
-        makeLandingServer(user, landingNum, &landing);
-        char* clusterfen = NULL;
-        makeClusterServer(user, clusterNum, clusterName, &clusterfen);
+    int exitCode = -1;
 
-        int exitCode = shellCommand(landing, clusterfen);
-        free(landing);
-        free(clusterfen);
-        return exitCode;
-    }
-    // If the command is to launch a landing shell
-    else if (strcmp(command, "l") == 0 || strcmp(command, "landing") == 0) {
-        if (user == NULL) {
-            printf("Error: No user given\n");
-            return 1;
-        }
-        char* landing = NULL;
-        makeLandingServer(user, landingNum, &landing);
-        int exitCode = landingCommand(landing);
-        free(landing);
-        return exitCode;
-    }
-    // If the command is to mount the AiMOS file system
-    else if (strcmp(command, "m") == 0 || strcmp(command, "mount") == 0) {
-        if (user == NULL) {
-            printf("Error: No user given\n");
-            return 1;
-        }
-        if (mountDest == NULL) {
-            printf("Error: No mount point given\n");
-            return 1;
-        }
-
-        // Create the mount source path string
-        char* home = "/gpfs/u/home/";
-        char* mountSrc = malloc(sizeof(char) * (strlen(home) + strlen(user) + 1));
-        sprintf(mountSrc, "%s%s", home, user);
-
-        char* landing = NULL;
-        makeLandingServer(user, landingNum, &landing);
-        int exitCode = mountCommand(landing, mountSrc, mountDest);
-
-        if (exitCode == 0) printf("Mounted %s%s:%s to %s\n", home, user, mountSrc, mountDest);
-        free(mountSrc);
-        free(landing);
-        return exitCode;
-    }
     // If the command is to unmount the AiMOS file system
-    else if (strcmp(command, "u") == 0 || strcmp(command, "unmount") == 0 || strcmp(command, "umount") == 0) {
+    if (strcmp(command, "u") == 0 || strcmp(command, "unmount") == 0 || strcmp(command, "umount") == 0) {
+
         if (mountDest == NULL) {
             printf("Error: No mount point given\n");
             return 1;
         }
 
-        int exitCode = unmountCommand(mountDest);
+        exitCode = unmountCommand(mountDest);
         if (exitCode == 0) printf("Unmounted %s\n", mountDest);
         return exitCode;
     }
-    // If the command is invalid
-    else {
-        printf("Error: Invalid command\n");
+
+    if (user == NULL) {
+        printf("Error: No user given\n");
         return 1;
     }
+
+    if (project == NULL) {
+        printf("Error: No project given\n");
+        return 1;
+    }
+
+    char* projUser = calloc(strlen(project) + strlen(user) + 2, sizeof(char));
+    sprintf(projUser, "%s%s", project, user);
+
+    char* landing = NULL;
+    makeLandingServer(projUser, landingNum, &landing);
+
+    // If the command is to launch a cluster shell
+    if (strcmp(command, "c") == 0 || strcmp(command, "cluster") == 0) {
+
+        if (clusterName == NULL) {
+            printf("Error: No cluster name given\n");
+            exitCode = 1;
+        }
+        else {
+            char* clusterfen = NULL;
+            makeClusterServer(projUser, clusterNum, clusterName, &clusterfen);
+
+            exitCode = shellCommand(landing, clusterfen);
+            free(clusterfen);
+        }
+    }
+    // If the command is to launch a landing shell
+    else if (strcmp(command, "l") == 0 || strcmp(command, "landing") == 0) {
+        exitCode = landingCommand(landing);
+    }
+    // If the command is to mount the AiMOS file system
+    else if (strcmp(command, "m") == 0 || strcmp(command, "mount") == 0) {
+
+        if (mountDest == NULL) {
+            printf("Error: No mount point given\n");
+            exitCode = 1;
+        }
+        else {
+            // Create the mount source path string
+            char* home = "/gpfs/u/home";
+            char* mountSrc = calloc(strlen(home) + strlen(project) + strlen(user) + 4, sizeof(char));
+            sprintf(mountSrc, "%s/%s/%s", home, project, user);
+
+            exitCode = mountCommand(landing, mountSrc, mountDest);
+            if (exitCode == 0) printf("Mounted %s%s:%s to %s\n", home, user, mountSrc, mountDest);
+            free(mountSrc);
+        }
+    }
+    // If the command is invalid
+    else printf("Error: Invalid command\n");
+
+    free(landing);
+    free(projUser);
+
+    return exitCode;
 }
 
 int processNodeNumFlag(int numFlags, char** flags, char* flagName, char* flagAlias, char** numVal) {
@@ -164,18 +166,18 @@ int processNodeNumFlag(int numFlags, char** flags, char* flagName, char* flagAli
     return 0;
 }
 
-int makeLandingServer(char* user, char* landingNum, char** landing) {
-    int landingLen = (int) strlen(user) + (int) strlen(landingNum) + 19;
+int makeLandingServer(char* projUser, char* landingNum, char** landing) {
+    int landingLen = (int) strlen(projUser) + (int) strlen(landingNum) + 19;
     *landing = malloc(sizeof(char) * landingLen);
-    sprintf(*landing, "%s@blp%s.ccni.rpi.edu", user, landingNum);
+    sprintf(*landing, "%s@blp%s.ccni.rpi.edu", projUser, landingNum);
 
     return 0;
 }
 
-int makeClusterServer(char* user, char* clusterNum, char* clusterName, char** cluster) {
-    int clusterLen = (int) strlen(user) + (int) strlen(clusterNum) + (int) strlen(clusterName) + 19;
+int makeClusterServer(char* projUser, char* clusterNum, char* clusterName, char** cluster) {
+    int clusterLen = (int) strlen(projUser) + (int) strlen(clusterNum) + (int) strlen(clusterName) + 19;
     *cluster = malloc(sizeof(char) * clusterLen);
-    sprintf(*cluster, "%s@%sfen%s.ccni.rpi.edu", user, clusterName, clusterNum);
+    sprintf(*cluster, "%s@%sfen%s.ccni.rpi.edu", projUser, clusterName, clusterNum);
 
     return 0;
 }
@@ -192,7 +194,7 @@ int processArgs(int numArgs, char** args, int numFlags, char** flags) {
         return 1;
     }
 
-    if (getFlagVal(numFlags, flags, "-h\0", NULL) == 0 || getFlagVal(numFlags, flags, "--help\0", NULL) == 0) {
+    if (getFlagVal(numFlags, flags, "-h", NULL) == 0 || getFlagVal(numFlags, flags, "--help", NULL) == 0) {
         printf("%s", HELP);
         return 0;
     }
@@ -204,13 +206,13 @@ int processArgs(int numArgs, char** args, int numFlags, char** flags) {
 
     char* landingNum = NULL;
     char* clusterNum = NULL;
-    if (processNodeNumFlag(numFlags, flags, "-l=\0", "--landing-num=\0", &landingNum) == 1) return 1;
-    if (processNodeNumFlag(numFlags, flags, "-c=\0", "--cluster-num=\0", &clusterNum) == 1) return 1;
+    if (processNodeNumFlag(numFlags, flags, "-l=", "--landing-num=", &landingNum) == 1) return 1;
+    if (processNodeNumFlag(numFlags, flags, "-c=", "--cluster-num=", &clusterNum) == 1) return 1;
 
     // Get the given mount point if any is given
     char* mountDest = NULL;
-    if (getFlagVal(numFlags, flags, "-m=\0", &mountDest) != 0)
-        getFlagVal(numFlags, flags, "--mount=\0", &mountDest);
+    if (getFlagVal(numFlags, flags, "-m=", &mountDest) != 0)
+        getFlagVal(numFlags, flags, "--mount=", &mountDest);
     if (mountDest != NULL && strlen(mountDest) == 0) {
         printf("Error: Mount destination flag given but no destination specified\n");
         return 1;
@@ -218,24 +220,33 @@ int processArgs(int numArgs, char** args, int numFlags, char** flags) {
 
     // Get the given user if any is given
     char* user = NULL;
-    if (getFlagVal(numFlags, flags, "-u=\0", &user) != 0)
-        getFlagVal(numFlags, flags, "--user=\0", &user);
+    if (getFlagVal(numFlags, flags, "-u=", &user) != 0)
+        getFlagVal(numFlags, flags, "--user=", &user);
     if (user != NULL && strlen(user) == 0) {
         printf("Error: User flag given but no user specified\n");
         return 1;
     }
 
+    // Get the given project if any is given
+    char* project = NULL;
+    if (getFlagVal(numFlags, flags, "-p=", &project) != 0)
+        getFlagVal(numFlags, flags, "--project=", &project);
+    if (project != NULL && strlen(project) == 0) {
+        printf("Error: Project flag given but no project specified\n");
+        return 1;
+    }
+
     // Get the given user if any is given
     char* clusterName = NULL;
-    if (getFlagVal(numFlags, flags, "-n=\0", &clusterName) != 0)
-        getFlagVal(numFlags, flags, "--cluster-name=\0", &clusterName);
+    if (getFlagVal(numFlags, flags, "-n=", &clusterName) != 0)
+        getFlagVal(numFlags, flags, "--cluster-name=", &clusterName);
     if (clusterName != NULL && strlen(clusterName) == 0) {
         printf("Error: Cluster name flag given but no name specified\n");
         return 1;
     }
 
     // Run the command
-    int exitCode = runCommand(args[0], user, landingNum, clusterNum, clusterName, mountDest);
+    int exitCode = runCommand(args[0], project, user, landingNum, clusterNum, clusterName, mountDest);
 
     if (landingNum != NULL) free(landingNum);
     if (clusterNum != NULL) free(clusterNum);
