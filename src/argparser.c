@@ -121,8 +121,8 @@ int runCommand(char* command, char* project, char* user, char* landingNum, char*
         else {
             // Create the mount source path string
             char* home = "/gpfs/u/home";
-            char* mountSrc = calloc(strlen(home) + strlen(project) + strlen(user) + 4, sizeof(char));
-            sprintf(mountSrc, "%s/%s/%s", home, project, user);
+            char* mountSrc = calloc(strlen(home) + strlen(project)*2 + strlen(user) + 4, sizeof(char));
+            sprintf(mountSrc, "%s/%s/%s%s", home, project, project, user);
 
             exitCode = mountCommand(landing, mountSrc, mountDest);
             if (exitCode == 0) printf("Mounted %s%s:%s to %s\n", home, user, mountSrc, mountDest);
