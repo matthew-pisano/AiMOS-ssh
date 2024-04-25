@@ -11,41 +11,33 @@
 int shellCommand(char* landing, char* clusterfen) {
 
     char* prefix = "ssh -o ProxyCommand=\"ssh -q -W %h:%p";
-    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(clusterfen) + 5));
+    char command[strlen(landing) + strlen(prefix) + strlen(clusterfen) + 5];
     sprintf(command, "%s %s\" %s", prefix, landing, clusterfen);
 
-    int exitCode = system(command);
-    free(command);
-    return exitCode;
+    return system(command);
 }
 
 int landingCommand(char* landing) {
 
-    char* command = malloc(sizeof(char) * (strlen(landing) + 6));
+    char command[strlen(landing) + 6];
     sprintf(command, "ssh %s", landing);
 
-    int exitCode = system(command);
-    free(command);
-    return exitCode;
+    return system(command);
 }
 
 int mountCommand(char* landing, char* mountSrc, char* mountDest) {
 
     char* prefix = "sshfs -o allow_other,follow_symlinks";
-    char* command = malloc(sizeof(char) * (strlen(landing) + strlen(prefix) + strlen(mountSrc) + strlen(mountDest) + 9));
+    char command[strlen(landing) + strlen(prefix) + strlen(mountSrc) + strlen(mountDest) + 9];
     sprintf(command, "%s \"%s:%s\" \"%s\"", prefix, landing, mountSrc, mountDest);
 
-    int exitCode = system(command);
-    free(command);
-    return exitCode;
+    return system(command);
 }
 
 int unmountCommand(char* mountPoint) {
 
-    char* command = malloc(sizeof(char) * (strlen(mountPoint) + 18));
-    sprintf(command, "fusermount -u \"%s\"", mountPoint);
+    char command[strlen(mountPoint) + 13];
+    sprintf(command, "umount -l \"%s\"", mountPoint);
 
-    int exitCode = system(command);
-    free(command);
-    return exitCode;
+    return system(command);
 }

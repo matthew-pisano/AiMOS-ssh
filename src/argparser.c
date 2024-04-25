@@ -30,7 +30,7 @@ void splitArgs(int argc, char** argv, int* numArgs, char*** args, int* numFlags,
         else (*args)[argCounter++] = argv[i];
 }
 
-int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, const int* minValLen) {
+int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, int minValLen) {
 
     int flagLen = (int) strlen(searchFlag);
     for (int i=0; i<numFlags; i++) {
@@ -41,8 +41,8 @@ int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, const 
 
             // Assign the value of the flag to the val pointer
             int valLen = (int) strlen(flags[i]) - flagLen;
-            if (minValLen != NULL && valLen < *minValLen)
-                *val = calloc(*minValLen + 1, sizeof(char));
+            if (minValLen != NO_MIN_LEN && valLen < minValLen)
+                *val = calloc(minValLen + 1, sizeof(char));
             else
                 *val = calloc(valLen + 1, sizeof(char));
 
@@ -55,7 +55,7 @@ int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, const 
 }
 
 int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val) {
-    return getnFlagVal(numFlags, flags, searchFlag, val, NULL);
+    return getnFlagVal(numFlags, flags, searchFlag, val, NO_MIN_LEN);
 
 }
 
@@ -86,11 +86,12 @@ int runCommand(char* command, char* project, char* user, char* landingNum, char*
         return 1;
     }
 
-    char* projUser = calloc(strlen(project) + strlen(user) + 2, sizeof(char));
+    char projUser[strlen(project) + strlen(user) + 2];
     sprintf(projUser, "%s%s", project, user);
 
-    char* landing = NULL;
-    makeLandingServer(projUser, landingNum, &landing);
+
+    char landing[(int) strlen(projUser) + (int) strlen(landingNum) + 19];
+    sprintf(landing, "%s@blp%s.ccni.rpi.edu", projUser, landingNum);
 
     // If the command is to launch a cluster shell
     if (strcmp(command, "c") == 0 || strcmp(command, "cluster") == 0) {
@@ -100,17 +101,14 @@ int runCommand(char* command, char* project, char* user, char* landingNum, char*
             exitCode = 1;
         }
         else {
-            char* clusterfen = NULL;
-            makeClusterServer(projUser, clusterNum, clusterName, &clusterfen);
-
+            char clusterfen[(int) strlen(projUser) + (int) strlen(clusterNum) + (int) strlen(clusterName) + 19];
+            sprintf(clusterfen, "%s@%sfen%s.ccni.rpi.edu", projUser, clusterName, clusterNum);
             exitCode = shellCommand(landing, clusterfen);
-            free(clusterfen);
         }
     }
     // If the command is to launch a landing shell
-    else if (strcmp(command, "l") == 0 || strcmp(command, "landing") == 0) {
+    else if (strcmp(command, "l") == 0 || strcmp(command, "landing") == 0)
         exitCode = landingCommand(landing);
-    }
     // If the command is to mount the AiMOS file system
     else if (strcmp(command, "m") == 0 || strcmp(command, "mount") == 0) {
 
@@ -121,19 +119,15 @@ int runCommand(char* command, char* project, char* user, char* landingNum, char*
         else {
             // Create the mount source path string
             char* home = "/gpfs/u/home";
-            char* mountSrc = calloc(strlen(home) + strlen(project)*2 + strlen(user) + 4, sizeof(char));
+            char mountSrc[strlen(home) + strlen(project)*2 + strlen(user) + 4];
             sprintf(mountSrc, "%s/%s/%s%s", home, project, project, user);
 
             exitCode = mountCommand(landing, mountSrc, mountDest);
             if (exitCode == 0) printf("Mounted %s%s:%s to %s\n", home, user, mountSrc, mountDest);
-            free(mountSrc);
         }
     }
     // If the command is invalid
     else printf("Error: Invalid command\n");
-
-    free(landing);
-    free(projUser);
 
     return exitCode;
 }
@@ -141,8 +135,8 @@ int runCommand(char* command, char* project, char* user, char* landingNum, char*
 int processNodeNumFlag(int numFlags, char** flags, char* flagName, char* flagAlias, char** numVal) {
     int padTo = 2;
     // Get the requested node number
-    if(getnFlagVal(numFlags, flags, flagName, numVal, &padTo) != 0)
-        getnFlagVal(numFlags, flags, flagAlias, numVal, &padTo);
+    if(getnFlagVal(numFlags, flags, flagName, numVal, padTo) != 0)
+        getnFlagVal(numFlags, flags, flagAlias, numVal, padTo);
 
     // Ensure that the node number is not empty
     if (*numVal == NULL || strlen(*numVal) == 0){
@@ -163,22 +157,6 @@ int processNodeNumFlag(int numFlags, char** flags, char* flagName, char* flagAli
         printf("Error: Flag %s number must be at most a two digit number\n", flagAlias);
         return 1;
     }
-    return 0;
-}
-
-int makeLandingServer(char* projUser, char* landingNum, char** landing) {
-    int landingLen = (int) strlen(projUser) + (int) strlen(landingNum) + 19;
-    *landing = malloc(sizeof(char) * landingLen);
-    sprintf(*landing, "%s@blp%s.ccni.rpi.edu", projUser, landingNum);
-
-    return 0;
-}
-
-int makeClusterServer(char* projUser, char* clusterNum, char* clusterName, char** cluster) {
-    int clusterLen = (int) strlen(projUser) + (int) strlen(clusterNum) + (int) strlen(clusterName) + 19;
-    *cluster = malloc(sizeof(char) * clusterLen);
-    sprintf(*cluster, "%s@%sfen%s.ccni.rpi.edu", projUser, clusterName, clusterNum);
-
     return 0;
 }
 
@@ -252,6 +230,7 @@ int processArgs(int numArgs, char** args, int numFlags, char** flags) {
     if (clusterNum != NULL) free(clusterNum);
     if (mountDest != NULL) free(mountDest);
     if (user != NULL) free(user);
+    if (project != NULL) free(project);
     if (clusterName != NULL) free(clusterName);
 
     return exitCode;

@@ -24,6 +24,7 @@ Commands: \n\
     m mount                           : Mounts the AiMOS file system to the given mount point\n\
     u unmount umount                  : Unmounts the AiMOS file system\n"
 
+#define NO_MIN_LEN -1
 
 /**
  * Gets the value of the given flag whe in the form -f=VAL or --flag=VAL
@@ -42,11 +43,10 @@ int getFlagVal(int numFlags, char** flags, char* searchFlag, char** val);
  * @param flags An array of the flags given by the user
  * @param searchFlag The flag to search for
  * @param val A pointer to the string to assign the value to
- * @param minValLen A pointer to the minimum length of the value to assign.  This value is ignored if the value is longer than the minimum length or if the minimum length is null
+ * @param minValLen The minimum length of the value to assign.  This value is ignored if the value is longer than the minimum length or if the minimum length is NO_MIN_LEN
  * @return Zero if the flag was found, one otherwise
  */
-int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, const int* minValLen);
-
+int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, int minValLen);
 
 
 /**
@@ -59,27 +59,6 @@ int getnFlagVal(int numFlags, char** flags, char* searchFlag, char** val, const 
  * @param flags A pointer that will have its value assigned to an array of program flags
  */
 void splitArgs(int argc, char *argv[], int *numArgs, char **args[], int *numFlags, char **flags[]);
-
-
-/**
- * Makes the server address to log into the given landing node
- * @param projUser The AiMOS username to use
- * @param landingNum The number of the landing node to use
- * @param landing A pointer to the string to assign the address to
- * @return Zero if the command was created successfully, one otherwise
- */
-int makeLandingServer(char* projUser, char* landingNum, char** landing);
-
-
-/**
- * Makes the cluster address to log into the given cluster front end node
- * @param projUser The AiMOS username to use
- * @param clusterNum The number of the cluster front end node to use
- * @param clusterName The name of the cluster to use
- * @param cluster A pointer to the string to assign the address to
- * @return Zero if the command was created successfully, one otherwise
- */
-int makeClusterServer(char* projUser, char* clusterNum, char* clusterName, char** cluster);
 
 
 /**
